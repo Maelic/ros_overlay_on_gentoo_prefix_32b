@@ -1,0 +1,77 @@
+# Pull ros-melodic/ros_base already emerged and the first part to emerge desktop
+FROM awesomebytes/roogp_32b_ros_melodic_desktop_2
+
+# For ros-melodic/opencv3 as reported in https://github.com/ros/ros-overlay/issues/726
+# RUN echo ">=dev-games/ogre-1.10.12 experimental" >> $EPREFIX/etc/portage/package.use
+# RUN sed -i 's/-DOGRE_NODE_STORAGE_LEGACY=no/-DOGRE_NODE_STORAGE_LEGACY=yes/g' $EPREFIX/usr/portage/dev-games/ogre/ogre-1.10.12.ebuild &&\
+#     $PREFIXED ebuild $EPREFIX/usr/portage/dev-games/ogre/ogre-1.10.12.ebuild manifest
+RUN echo ">dev-games/ogre-1.9.0-r1" >> $EPREFIX/etc/portage/package.mask
+RUN $PREFIXED emerge dev-games/ogre
+
+# As reported here https://github.com/ros/ros-overlay/issues/581
+# For cv_bridge, camera_calibration_parsers (at least)
+RUN $PREFIXED emerge dev-libs/boost[python]
+RUN cd $EPREFIX/usr/lib &&\
+    ln -s libboost_python27.so libboost_python.so
+
+
+# Numpy doesn't support Python 2.7 anymore
+# and we are still pending on migrating to Python 3 (as ROS is)
+# ros-melodic/opencv_bridge fails to emerge with:
+# ImportError: No module named numpy
+# CMake Error at src/CMakeLists.txt:25 (message):
+#   Could not determine the NumPy include directory, verify that NumPy was
+#   installed correctly.
+# So we install the latest Python2 compatible numpy version
+RUN echo ">dev-python/numpy-1.17" >> $EPREFIX/etc/portage/package.mask && \
+    $PREFIXED emerge dev-python/numpy
+
+RUN echo ">=dev-python/numpy-1.18.5" >> $EPREFIX/etc/portage/package.unmask
+
+RUN $PREFIXED emerge ros-melodic/python_qt_binding
+
+
+
+# cv_bridge wants openCV 3, but we have 4 right now, so we need to downgrade
+# or do something like: https://github.com/MartinNievas/vision_opencv/pull/2/files
+# to allow OpenCV4, but I'll leave that as a future work
+#RUN echo "GENTOO_MIRRORS=\"http://distfiles.gentoo.org\n\ 
+#               http://mirror.sbb.rs/gentoo-portage/\n\
+#                http://ftp.free.fr/mirrors/ftp.gentoo.org/\n\
+#                https://mirrors.ircam.fr/pub/gentoo-distfiles/\n\
+#                http://mirrors.soeasyto.com/distfiles.gentoo.org/\n\
+#                http://gentoo.modulix.net/gentoo/\n\
+#               https://mirror.leaseweb.com/gentoo/\n\
+#                http://mirrors.sec.informatik.tu-darmstadt.de/gentoo/\n\
+#                http://gentoo.tiscali.nl/\n\
+#               http://gentoo.mneisen.org/\n\
+#               http://gentoo.mirror.pw.edu.pl/\n\
+#                http://gentoo.prz.rzeszow.pl\n\
+#                http://mirror.uni-c.dk/pub/gentoo/\n\
+#               http://ftp.dei.uc.pt/pub/linux/gentoo/\"" >> $EPREFIX/etc/portage/make.conf
+
+#RUN cat $EPREFIX/etc/portage/make.conf
+
+#Hack for opencv
+RUN cd $DISTDIR && wget https://github.com/opencv/opencv/archive/refs/tags/3.3.1.tar.gz 
+RUN FETCHCOMMAND="wget -t 5 --no-check-certificate \${URI} -O \${DISTDIR}/\${FILE}" $PREFIXED emerge media-libs/opencv
+#RUN $PREFIXED cd /tmp/gentoo/usr/ && $PREFIXED git clone https://github.com/ManuelRios18/OpenCV3.0-gentoo.git && mkdir build && cd build && cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/tmp/gentoo/var/tmp/portage/ .. && make install
+
+#RUN git clone https://github.com/MartinNievas/vision_opencv.git --branch compile_oCV4_2
+
+# Setup desktop (237 packages)
+RUN $PREFIXED emerge ros-melodic/desktop || true
+
+# Extra trick needed as qmake points to qtchooser for Rviz, but we can only do it
+# when we already have QT5
+# so we let ros-melodic/desktop fail once and do this
+RUN cd /tmp/gentoo/usr/bin && \
+    unlink qmake && \
+    ln -s /tmp/gentoo/usr/lib/qt5/bin/qmake qmake
+RUN $PREFIXED emerge ros-melodic/desktop
+
+
+# Create the bin packages
+# RUN $PREFIXED quickpkg \"*/*\" --include-config y --include-unmodified-config y
+
+ENTRYPOINT ["/bin/bash"]
