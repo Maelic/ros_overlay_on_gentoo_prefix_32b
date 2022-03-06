@@ -302,6 +302,7 @@ RUN $PREFIXED emerge sys-devel/dwz
 
 RUN $PREFIXED emerge =dev-lang/python-exec-2.4.8
 RUN echo ">=dev-libs/urdfdom_headers-1.0.5 **\n\
+>=dev-python/python_orocos_kdl-1.5.0 **\n\
 >=dev-libs/urdfdom-1.0.4-r1 **">> $EPREFIX/etc/portage/package.accept_keywords
 
 # Somehow there is a collision file /tmp/gentoo/usr/bin/tmp so we need to remove it, and this between every package emerge
@@ -366,6 +367,11 @@ $PREFIXED emerge =ros-noetic/robot-1.5.0-r1  && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp 
 
 # ROS perception
+RUN echo "# required by ros-noetic/pcl_ros-1.7.3-r1::ros-overlay\n\
+# required by ros-noetic/perception-1.5.0-r1::ros-overlay\n\
+# required by ros-noetic/perception_pcl-1.7.3-r1::ros-overlay\n\
+# required by ros-noetic/perception (argument)\n\
+>=sci-libs/pcl-1.12.0::gentoo **"  >> $EPREFIX/etc/portage/package.accept_keywords
 
 RUN $PREFIXED emerge =sci-libs/flann-1.9.1-r5  && \
 $PREFIXED emerge =sci-libs/pcl-1.12.0
@@ -410,9 +416,22 @@ RUN rm -r /tmp/gentoo/usr/local/portage/ros-noetic/octomap_ros/ && mkdir -p /tmp
 ADD ebuilds/octomap_ros /tmp/gentoo/usr/local/portage/ros-noetic/octomap_ros
 RUN $PREFIXED ebuild /tmp/gentoo/usr/local/portage/ros-noetic/octomap_ros/octomap_ros-0.4.1-r1.ebuild manifest
 
-RUN $PREFIXED emerge ros-noetic/octomap_ros && rm /tmp/gentoo/usr/bin/tmp && \
+RUN $PREFIXED emerge =ros-noetic/move_base_msgs-1.14.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/tf2_sensor_msgs-0.7.5-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/voxel_grid-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/costmap_2d-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/nav_core-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/base_local_planner-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/clear_costmap_recovery-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/navfn-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/rotate_recovery-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp 
+
+RUN $PREFIXED emerge =ros-noetic/octomap_msgs-0.3.5-r1 && rm /tmp/gentoo/usr/bin/tmp && $PREFIXED emerge ros-noetic/octomap_ros && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/openslam_gmapping-0.2.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/gmapping && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/amcl && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/move_base && rm /tmp/gentoo/usr/bin/tmp 
+
+
 
 ENTRYPOINT ["/bin/bash"]
