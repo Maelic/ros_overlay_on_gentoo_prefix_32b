@@ -20,7 +20,7 @@ To build your version go into the apporpriate folder and execute:
 ```buildoutcfg
 docker build -f Dockerfile -t "ROS_version" .
 ```
-For isntance:
+For instance:
 ```buildoutcfg
 docker build -f Dockerfile -t ROS_noetic_simple .
 ```
