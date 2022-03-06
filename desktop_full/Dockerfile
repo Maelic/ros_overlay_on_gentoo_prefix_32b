@@ -1,4 +1,4 @@
-FROM awesomebytes/roogp_ros_melodic_desktop_2
+FROM noetic-desktop-3
 
 # If we can go faster, try
 RUN sed -i -e 's/j1/j'"$((`grep -c \^processor \/proc\/cpuinfo` / 2))"'/g' $EPREFIX/etc/portage/make.conf
@@ -10,7 +10,7 @@ RUN mkdir -p $EPREFIX/etc/portage/patches/ros-melodic/image_view &&\
     mv 0001-Force-find-gtk2.0.patch $EPREFIX/etc/portage/patches/ros-melodic/image_view
 
 # desktop_full includes desktop, perception & simulators
-RUN $PREFIXED emerge ros-melodic/perception
+RUN $PREFIXED emerge ros-noetic/perception
 
 
 RUN echo "# required by dev-lang/ruby-2.5.3::gentoo\n\
@@ -98,5 +98,5 @@ RUN sed -i 's/${D}/${ED}/g' /tmp/gentoo/usr/portage/dev-libs/libspnav/libspnav-0
 # currently stuck on ignition-math
 RUN $PREFIXED emerge =sci-electronics/gazebo-9.4.1
 
-RUN $PREFIXED emerge ros-melodic/desktop_full
+RUN $PREFIXED emerge ros-noetic/desktop_full
 
