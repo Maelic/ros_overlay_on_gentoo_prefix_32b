@@ -29,7 +29,7 @@ Then, to compress your build into an archive:
 ```buildoutcfg
 docker run --rm --entrypoint /tmp/gentoo/executeonprefix "YOUR_IMAGE" "tar -c --lzma -f - -C /tmp gentoo" > ./gentoo_on_tmp.tar.lzma; ls -lah .
 ```
-For isntance:
+For instance:
 ```buildoutcfg
 docker run --rm --entrypoint /tmp/gentoo/executeonprefix  ROS_noetic_simple:latest "tar -c --lzma -f - -C /tmp gentoo" > ./gentoo_on_tmp.tar.lzma; ls -lah .
 ```
