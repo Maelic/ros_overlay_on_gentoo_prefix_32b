@@ -55,7 +55,6 @@ RUN $PREFIXED locale-gen
 RUN sed -i -e 's/j2/j'"$((`grep -c \^processor \/proc\/cpuinfo` / 2))"'/g' $EPREFIX/etc/portage/make.conf
 # Add extra jobs if we have enough CPUs
 RUN echo "EMERGE_DEFAULT_OPTS=\"--jobs $((`grep -c \^processor \/proc\/cpuinfo` / 2)) --load-average `grep -c \^processor \/proc\/cpuinfo`\"" >> $EPREFIX/etc/portage/make.conf
-RUN cat $EPREFIX/etc/portage/make.conf
 
 RUN $PREFIXED update-ca-certificates
 
@@ -70,7 +69,7 @@ RUN unlink $EPREFIX/usr/bin/gm4 \
 # Emerging git
 RUN $PREFIXED emerge dev-vcs/git
 
-# Setting EAPI to 6 as explained in http://wiki.ros.org/Installation/Gentoo
+# Setting EAPI to 8
 RUN mkdir -p $EPREFIX/etc/portage/profile/ && echo "8" > $EPREFIX/etc/portage/profile/eapi
 
 # Setting up ros-overlay https://github.com/ros/ros-overlay
@@ -96,21 +95,12 @@ RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask
 # Sync everything
 RUN $PREFIXED emaint sync -a
 
-RUN echo "# required by dev-python/setuptools-60.9.2::gentoo\n\
->=dev-python/jaraco-text-3.7.0-r1[python_targets_pypy3(-)?,python_targets_python3_8(-)?,python_targets_python3_9(-)?,python_targets_python3_10(-)?]" >> $EPREFIX/etc/portage/package.use
-
-
-RUN echo ">=dev-python/jaraco-text-3.7.0-r1" >> $EPREFIX/etc/portage/package.mask
-
+RUN echo ">=dev-python/jaraco-text-3.7.0-r1" >> $EPREFIX/etc/portage/package.unmask
+RUN $PREFIXED emerge =dev-python/setuptools-60.5.0
 RUN $PREFIXED emerge -1 portage
 
-# # bug 674830
-# RUN echo ">=sys-apps/dbus-1.12.10" >> $EPREFIX/etc/portage/package.mask
-#RUN $PREFIXED emerge sys-apps/dbus
-
-RUN $PREFIXED emerge =dev-libs/libical-3.0.12
-
-RUN $PREFIXED emerge python:3.8
+RUN $PREFIXED emerge =dev-libs/libical-3.0.12 && \ 
+$PREFIXED emerge python:3.8
 
 RUN echo ">=net-wireless/bluez-5.63-r1" >> $EPREFIX/etc/portage/package.unmask
 
@@ -126,52 +116,56 @@ RUN EXTRA_ECONF="--enable-optimizations --with-lto" $PREFIXED emerge python:3.8[
 # Could be good to have pip running with python3.8
 RUN wget https://bootstrap.pypa.io/get-pip.py && $PREFIXED python3.8 get-pip.py && rm get-pip.py 
 
-# It's also needed to not run in problems later on (on ros-melodic/desktop)
-# This can't be done anymore, the oldest version is 3.13.5 as of writing this comment
-# RUN echo ">dev-util/cmake-3.12.3" >> $EPREFIX/etc/portage/package.mask
-# Make sure we emerge that version
 RUN $PREFIXED emerge dev-util/cmake
 
-
-RUN echo "=dev-python/rospkg-1.3.0 **" >> $EPREFIX/etc/portage/package.accept_keywords
-RUN echo "=dev-python/rosdistro-0.8.3 **" >> $EPREFIX/etc/portage/package.accept_keywords
-
-RUN echo "=dev-util/rosdep-9999 **" >> $EPREFIX/etc/portage/package.accept_keywords
+RUN echo "=dev-python/rospkg-1.3.0 **\n\
+=dev-python/rosdistro-0.8.3 **\n\
+=dev-util/rosdep-9999 **" >> $EPREFIX/etc/portage/package.accept_keywords
 
 RUN $PREFIXED emerge dev-util/rosdep 
-RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask
-
-RUN echo ">=dev-python/jaraco-text-3.7.0-r1"  >> $EPREFIX/etc/portage/package.unmask
-
-RUN echo "sys-libs/libcap -pam" >> $EPREFIX/etc/portage/package.use
+RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask && \
+echo ">=dev-python/jaraco-text-3.7.0-r1"  >> $EPREFIX/etc/portage/package.unmask && \
+echo "sys-libs/libcap -pam" >> $EPREFIX/etc/portage/package.use
 
 RUN $PREFIXED emerge sys-devel/llvm
 
-# Patch issue https://github.com/ros/ros-overlay/issues/607
-#RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
-#ADD catkin_patchs/0001-Add-lib64-to-LD_LIBRARY_PATH.patch $EPREFIX/etc/portage/patches/ros-noetic/catkin/0001-Add-lib64-to-LD_LIBRARY_PATH.patch
-#ADD catkin_patchs/0002-Add-DESTDIR-for-Gentoo.patch $EPREFIX/etc/portage/patches/ros-noetic/catkin/0002-Add-DESTDIR-for-Gentoo.patch
-#ADD catkin_patchs/0003-Force-non-debian-layout.patch $EPREFIX/etc/portage/patches/ros-noetic/catkin/0003-Force-non-debian-layout.patch
-#ADD catkin_patchs/0004-ADd-CATKIN_PREFIX_PATH-if-not-found.patch $EPREFIX/etc/portage/patches/ros-noetic/catkin/0004-ADd-CATKIN_PREFIX_PATH-if-not-found.patch
+RUN echo ">=dev-libs/boost-1.77.0" >> $EPREFIX/etc/portage/package.mask && \
+echo "=dev-libs/boost-1.71.0-r666 threads python" >> $EPREFIX/etc/portage/package.use && \
+echo "=dev-libs/boost-1.71.0-r666 **\n\
+=dev-libs/console_bridge-9999 **">> $EPREFIX/etc/portage/package.accept_keywords
 
-#RUN  $PREFIXED emerge ros-noetic/catkin
+# Boost install from source - OLD
+#RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.gz && tar -xzf boost_1_71_0.tar.gz && rm boost_1_71_0.tar.gz
+#RUN cd boost_1_71_0 && ./bootstrap.sh --prefix=/tmp/gentoo/usr/include/boost && ./b2 install --prefix=/tmp/gentoo/usr/include/boost --with=all
 
-
-RUN echo ">=dev-libs/boost-1.77.0" >> $EPREFIX/etc/portage/package.mask
-RUN echo "=dev-libs/boost-1.76.0-r1 threads python" >> $EPREFIX/etc/portage/package.use 
-
-# Hard fix for boost not compiling with threads IUSE
-RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-libs/boost
-ADD ebuilds/boost $EPREFIX/usr/local/portage/dev-libs/boost
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.76.0-r1.ebuild manifest
-
-RUN $PREFIXED emerge =dev-libs/boost-1.76.0-r1
+RUN echo ">=dev-libs/boost-1.72.0" >> $EPREFIX/etc/portage/package.mask
 
 RUN echo "# required by ros-noetic/nodelet-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/nodelet_topic_tools-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/nodelet_core-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/ros_base-1.5.0-r1::ros-overlay\n\
 # required by ros-noetic/ros_base (argument)\n\
->=dev-libs/boost-1.76.0-r1 python threads" >> $EPREFIX/etc/portage/package.use
+>=dev-libs/boost-1.71.0 python threads" >> $EPREFIX/etc/portage/package.use
+
+RUN echo ">=dev-libs/boost-1.71.0 python" >> $EPREFIX/etc/portage/package.use
+
+RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-util/boost-build
+ADD ebuilds/boost-build $EPREFIX/usr/local/portage/dev-util/boost-build
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-util/boost-build/boost-build-1.71.0.ebuild manifest && $PREFIXED emerge =dev-util/boost-build-1.71.0
+
+RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-libs/boost && mkdir -p $EPREFIX/usr/local/portage/dev-libs/boost/files
+ADD ebuilds/boost $EPREFIX/usr/local/portage/dev-libs/boost
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.71.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.71.0
+
+
+
+# Patch issue https://github.com/ros/ros-overlay/issues/607
+RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
+ADD catkin_patchs $EPREFIX/etc/portage/patches/ros-noetic/catkin
+RUN $PREFIXED emerge ros-noetic/catkin
+
+RUN $PREFIXED COLLISION_IGNORE="/usr" linux32 emerge ros-noetic/ros_base || true
+
+RUN COLLISION_IGNORE="/tmp/gentoo/usr" FEATURES="-collision-detect -protect-owned" $PREFIXED emerge  ros-noetic/ros_base
 
 ENTRYPOINT ["/bin/bash"]

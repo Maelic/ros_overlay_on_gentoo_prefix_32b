@@ -1,0 +1,129 @@
+diff --git a/ka/sha1.hpp b/ka/sha1.hpp
+index f3eb0e57..e356550a 100644
+--- a/ka/sha1.hpp
++++ b/ka/sha1.hpp
+@@ -5,7 +5,7 @@
+ #include <cstdint>
+ #include <type_traits>
+ #include <openssl/sha.h>
+-#include <boost/uuid/sha1.hpp>
++#include <boost/uuid/detail/sha1.hpp>
+ #include "scoped.hpp"
+ #include "typetraits.hpp"
+ 
+diff --git a/qi/type/detail/anyfunctionfactory.hxx b/qi/type/detail/anyfunctionfactory.hxx
+index dc030992..e449b881 100644
+--- a/qi/type/detail/anyfunctionfactory.hxx
++++ b/qi/type/detail/anyfunctionfactory.hxx
+@@ -21,6 +21,7 @@
+ #include <boost/type_traits/remove_const.hpp>
+ #include <boost/type_traits/remove_pointer.hpp>
+ #include <boost/type_traits/is_member_function_pointer.hpp>
++#include <boost/type_traits/is_fundamental.hpp>
+ #include <boost/function_types/function_type.hpp>
+ #include <boost/function_types/function_arity.hpp>
+ #include <boost/function_types/function_pointer.hpp>
+@@ -80,8 +81,8 @@ KA_WARNING_DISABLE(, noexcept-type)
+     template<typename T>
+     struct EqTypeBase<T, true>
+     {
+-      using type = typename boost::mpl::if_<typename boost::is_fundamental<T>::type, void*, T>::type;
+-      using rType =  typename boost::mpl::if_<typename boost::is_fundamental<T>::type, void*, T>::type;
++      using type = typename boost::mpl::if_<boost::is_fundamental<T>, void*, T>::type;
++      using rType =  typename boost::mpl::if_<boost::is_fundamental<T>, void*, T>::type;
+       using isReference = typename boost::is_reference<T>::type;
+       static const int dbgTag = 1;
+     };
+diff --git a/src/eventloop.cpp b/src/eventloop.cpp
+index 500482eb..2ece4b41 100644
+--- a/src/eventloop.cpp
++++ b/src/eventloop.cpp
+@@ -723,7 +723,7 @@ namespace qi {
+     tracepoint(qi_qi, eventloop_delay, id, cb.target_type().name(), boost::chrono::duration_cast<qi::MicroSeconds>(delay).count());
+     if (delay > Duration::zero())
+     {
+-      boost::shared_ptr<boost::asio::steady_timer> timer = boost::make_shared<boost::asio::steady_timer>(boost::ref(_io));
++      boost::shared_ptr<boost::asio::steady_timer> timer = boost::make_shared<boost::asio::steady_timer>(_io);
+       timer->expires_from_now(boost::chrono::duration_cast<boost::asio::steady_timer::duration>(delay));
+       auto prom = detail::makeCancelingPromise(options, boost::bind(&boost::asio::steady_timer::cancel, timer));
+       timer->async_wait([=](const boost::system::error_code& erc) {
+@@ -766,7 +766,7 @@ namespace qi {
+     auto countTotalTask = ka::shared_ptr(ka::scoped_incr_and_decr(_totalTask));
+ 
+     //tracepoint(qi_qi, eventloop_delay, id, cb.target_type().name(), qi::MicroSeconds(delay).count());
+-    boost::shared_ptr<SteadyTimer> timer = boost::make_shared<SteadyTimer>(boost::ref(_io));
++    boost::shared_ptr<SteadyTimer> timer = boost::make_shared<SteadyTimer>(_io);
+     timer->expires_at(timepoint);
+     auto prom = detail::makeCancelingPromise(options, boost::bind(&SteadyTimer::cancel, timer));
+     timer->async_wait([=](const boost::system::error_code& erc) {
+diff --git a/src/messaging/sock/socketwithcontext.hpp b/src/messaging/sock/socketwithcontext.hpp
+index 39d6d584..09d1d4da 100644
+--- a/src/messaging/sock/socketwithcontext.hpp
++++ b/src/messaging/sock/socketwithcontext.hpp
+@@ -5,6 +5,7 @@
+ #include <ka/mutablestore.hpp>
+ #include "traits.hpp"
+ #include "sslcontextptr.hpp"
++#include <boost/asio.hpp>
+ 
+ namespace qi { namespace sock {
+ 
+@@ -37,7 +38,7 @@ namespace qi { namespace sock {
+ 
+     io_service_t& get_io_service()
+     {
+-      return socket.get_io_service();
++      return ((boost::asio::io_context&)socket.get_executor().context());
+     }
+ 
+     void set_verify_mode(decltype(N::sslVerifyNone()) x)
+diff --git a/src/messaging/transportserverasio_p.cpp b/src/messaging/transportserverasio_p.cpp
+index 66082673..a2f2e889 100644
+--- a/src/messaging/transportserverasio_p.cpp
++++ b/src/messaging/transportserverasio_p.cpp
+@@ -90,7 +90,7 @@ namespace qi
+             qiLogError() << "bug: socket not stored by the newConnection handler (usecount:" << socket.use_count() << ")";
+         }
+     }
+-    _s = sock::makeSocketWithContextPtr<sock::NetworkAsio>(_acceptor->get_io_service(), _sslContext);
++    _s = sock::makeSocketWithContextPtr<sock::NetworkAsio>(((boost::asio::io_context&)_acceptor->get_executor().context()), _sslContext);
+     _acceptor->async_accept(_s->lowest_layer(),
+                            boost::bind(_onAccept, shared_from_this(), _1, _s));
+   }
+@@ -213,7 +213,7 @@ namespace qi
+     using namespace boost::asio;
+ #ifndef ANDROID
+     // resolve endpoint
+-    ip::tcp::resolver r(_acceptor->get_io_service());
++    ip::tcp::resolver r(((boost::asio::io_context&)_acceptor->get_executor().context()));
+     ip::tcp::resolver::query q(_listenUrl.host(), boost::lexical_cast<std::string>(_listenUrl.port()),
+                                boost::asio::ip::tcp::resolver::query::all_matching);
+     ip::tcp::resolver::iterator it = r.resolve(q);
+@@ -244,7 +244,7 @@ namespace qi
+     boost::asio::socket_base::reuse_address option(false);
+ #else
+     boost::asio::socket_base::reuse_address option(true);
+-    fcntl(_acceptor->native(), F_SETFD, FD_CLOEXEC);
++    fcntl(_acceptor->native_handle(), F_SETFD, FD_CLOEXEC);
+ #endif
+     _acceptor->set_option(option);
+     try
+@@ -325,7 +325,7 @@ namespace qi
+       ));
+     }
+ 
+-    _s = sock::makeSocketWithContextPtr<sock::NetworkAsio>(_acceptor->get_io_service(), _sslContext);
++    _s = sock::makeSocketWithContextPtr<sock::NetworkAsio>(((boost::asio::io_context&)_acceptor->get_executor().context()), _sslContext);
+     _acceptor->async_accept(_s->lowest_layer(),
+       boost::bind(_onAccept, shared_from_this(), _1, _s));
+     _connectionPromise.setValue(0);
+@@ -359,8 +359,7 @@ namespace qi
+     , _self(self)
+     , _acceptor(new boost::asio::ip::tcp::acceptor(*asIoServicePtr(ctx)))
+     , _live(true)
+-    , _sslContext(sock::makeSslContextPtr<sock::NetworkAsio>(*asIoServicePtr(ctx),
+-                                                             sock::SslContext<sock::NetworkAsio>::tlsv12))
++    , _sslContext(sock::makeSslContextPtr<sock::NetworkAsio>(sock::SslContext<sock::NetworkAsio>::sslv23))
+     , _s()
+     , _ssl(false)
+     , _port(0)
