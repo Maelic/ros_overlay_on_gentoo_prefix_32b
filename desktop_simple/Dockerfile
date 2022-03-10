@@ -1,5 +1,5 @@
 # Pull ros-noetic/ros_base already emerged
-FROM noetic-desktop-2
+FROM ros_base:latest
 
 RUN echo "ACCEPT_LICENSE=\"*\"" >> $EPREFIX/etc/portage/make.conf 
 
@@ -278,8 +278,8 @@ RUN cd /tmp/gentoo/usr/lib/cmake/Qt5Gui; find ./ -type f -exec sed -i -e 's@/hom
 
 # Without this perl not compiling, don't ask me why
 RUN $PREFIXED USE="cpu_flags_x86_sse2" emerge =virtual/rust-1.58.1 && \
-$PREFIXED perl-cleaner --all && \
-$PREFIXED emaint sync -a
+$PREFIXED perl-cleaner --backtrack=100 --all 
+RUN $PREFIXED emaint sync -a
 
 RUN $PREFIXED emerge -C virtual/perl* && \
 $PREFIXED emerge -C perl-core/* && \
@@ -395,7 +395,7 @@ $PREFIXED emerge =ros-noetic/camera_calibration_parsers-1.12.0-r1 && rm /tmp/gen
 $PREFIXED emerge =ros-noetic/laser_pipeline-1.6.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/camera_info_manager-1.12.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/image_view-1.16.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
-$PREFIXED emerge =ros-noetic/image_transport_plugins-1.14.0-r1&& rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/image_transport_plugins-1.14.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/image_publisher-1.16.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/image_pipeline-1.16.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/image_common-1.12.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
@@ -433,5 +433,8 @@ $PREFIXED emerge ros-noetic/amcl && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/move_base && rm /tmp/gentoo/usr/bin/tmp 
 
 
+RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqi 
+ADD ebuilds/naoqi_libqi $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/libqi-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
 
 ENTRYPOINT ["/bin/bash"]
