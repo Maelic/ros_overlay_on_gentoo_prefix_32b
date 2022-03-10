@@ -33,3 +33,18 @@ For instance:
 ```buildoutcfg
 docker run --rm --entrypoint /tmp/gentoo/executeonprefix  ROS_noetic_simple:latest "tar -c --lzma -f - -C /tmp gentoo" > ./gentoo_on_tmp.tar.lzma; ls -lah .
 ```
+
+## Some usefull resources
+
+### Create a patch for a package (very usefull):
+
+Run the docker image where you need to modify the build of a package and then follow:
+
+[https://wiki.gentoo.org/wiki/Patches](https://wiki.gentoo.org/wiki/Patches)
+
+### Gentoo official and non-official overlays
+
+Very usefull to find a package that has been deleted from the official overlay.
+
+[https://gpo.zugaina.org/](https://gpo.zugaina.org/)
+

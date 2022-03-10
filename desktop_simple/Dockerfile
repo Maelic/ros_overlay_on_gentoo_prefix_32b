@@ -326,8 +326,17 @@ $PREFIXED emerge =ros-noetic/joint_state_publisher-1.15.0-r1 && rm /tmp/gentoo/u
 $PREFIXED emerge =ros-noetic/image_transport-1.12.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/tf2_py-0.7.5-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/xacro-1.14.10-r1 && rm /tmp/gentoo/usr/bin/tmp && \
-$PREFIXED emerge =ros-noetic/kdl_parser-1.14.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
-$PREFIXED emerge =ros-noetic/cv_bridge-1.15.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/kdl_parser-1.14.1-r1 && rm /tmp/gentoo/usr/bin/tmp 
+
+RUN $PREFIXED emerge =media-libs/opencv-4.5.5-r1
+
+# Hard fix for cv_bridge to find boost 1.71
+RUN cd $EPREFIX/usr/lib && ln -s libboost_python-3.8.so libboost_python.so
+RUN rm -rf $EPREFIX/usr/local/portage/ros-noetic/cv_bridge && mkdir $EPREFIX/usr/local/portage/ros-noetic/cv_bridge
+ADD ebuilds/cv_bridge $EPREFIX/usr/local/portage/ros-noetic/cv_bridge
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/cv_bridge/cv_bridge-1.15.0-r1.ebuild manifest
+
+RUN $PREFIXED emerge =ros-noetic/cv_bridge-1.15.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/diagnostic_updater-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/filters-1.9.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/diagnostic_aggregator-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
@@ -358,11 +367,9 @@ $PREFIXED emerge =ros-noetic/geometry-1.13.2-r1 && rm /tmp/gentoo/usr/bin/tmp
 # qtwebkit has been removed from the gentoo official overlay, need to add it manualy
 RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-qt/qtwebkit
 ADD ebuilds/qtwebkit $EPREFIX/usr/local/portage/dev-qt/qtwebkit
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-qt/qtwebkit/qtwebkit-5.212.0_pre20200309-r2.ebuild manifest
-RUN $PREFIXED emerge dev-qt/qtwebkit
-
-
-RUN $PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-qt/qtwebkit/qtwebkit-5.212.0_pre20200309-r2.ebuild manifest && \
+$PREFIXED emerge dev-qt/qtwebkit && \
+$PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/robot-1.5.0-r1  && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp 
 
@@ -371,10 +378,13 @@ RUN echo "# required by ros-noetic/pcl_ros-1.7.3-r1::ros-overlay\n\
 # required by ros-noetic/perception-1.5.0-r1::ros-overlay\n\
 # required by ros-noetic/perception_pcl-1.7.3-r1::ros-overlay\n\
 # required by ros-noetic/perception (argument)\n\
->=sci-libs/pcl-1.12.0::gentoo **"  >> $EPREFIX/etc/portage/package.accept_keywords
-
-RUN $PREFIXED emerge =sci-libs/flann-1.9.1-r5  && \
+>=sci-libs/pcl-1.12.0::gentoo **"  >> $EPREFIX/etc/portage/package.accept_keywords && \
+$PREFIXED emerge =sci-libs/flann-1.9.1-r5  && \
 $PREFIXED emerge =sci-libs/pcl-1.12.0
+
+RUN rm -rf $EPREFIX/usr/local/portage/ros-noetic/camera_calibration_parsers && mkdir -p $EPREFIX/usr/local/portage/ros-noetic/camera_calibration_parsers
+ADD ebuilds/camera_parsers  $EPREFIX/usr/local/portage/ros-noetic/camera_calibration_parsers
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/camera_calibration_parsers/camera_calibration_parsers-1.12.0-r1.ebuild manifest
 
 RUN $PREFIXED emerge =ros-noetic/image_geometry-1.15.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/pcl_msgs-0.3.0-r1 && rm /tmp/gentoo/usr/bin/tmp && \
@@ -404,8 +414,8 @@ $PREFIXED emerge =ros-noetic/pcl_ros-1.7.3-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/perception_pcl-1.7.3-r1 && rm /tmp/gentoo/usr/bin/tmp
 
 # ROS Navigation
-RUN echo ">=sci-libs/octomap-1.9.7::gentoo **" >>  $EPREFIX/etc/portage/package.accept_keywords
-RUN echo "# required by media-gfx/graphviz-2.49.0::gentoo\n\
+RUN echo ">=sci-libs/octomap-1.9.7::gentoo **" >>  $EPREFIX/etc/portage/package.accept_keywords && \
+echo "# required by media-gfx/graphviz-2.49.0::gentoo\n\
 # required by ros-noetic/tf-1.13.2-r1::ros-overlay\n\
 # required by ros-noetic/octomap_ros-0.4.1-r1::ros-overlay\n\
 # required by ros-noetic/octomap_ros (argument)\n\
@@ -424,9 +434,9 @@ $PREFIXED emerge =ros-noetic/nav_core-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp &&
 $PREFIXED emerge =ros-noetic/base_local_planner-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/clear_costmap_recovery-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/navfn-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
-$PREFIXED emerge =ros-noetic/rotate_recovery-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp 
-
-RUN $PREFIXED emerge =ros-noetic/octomap_msgs-0.3.5-r1 && rm /tmp/gentoo/usr/bin/tmp && $PREFIXED emerge ros-noetic/octomap_ros && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/rotate_recovery-1.17.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/octomap_msgs-0.3.5-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge ros-noetic/octomap_ros && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge =ros-noetic/openslam_gmapping-0.2.1-r1 && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/gmapping && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/amcl && rm /tmp/gentoo/usr/bin/tmp && \
@@ -435,6 +445,12 @@ $PREFIXED emerge ros-noetic/move_base && rm /tmp/gentoo/usr/bin/tmp
 
 RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqi 
 ADD ebuilds/naoqi_libqi $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/libqi-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/naoqi_libqi-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
+
+RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqicore 
+ADD ebuilds/naoqi_libqicore $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqicore
+
+### TODO: debug emerge of libqicore!!!
+#RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqicore/naoqi_libqicore-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqicore
 
 ENTRYPOINT ["/bin/bash"]
