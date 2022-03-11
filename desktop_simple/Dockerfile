@@ -447,10 +447,5 @@ RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqi
 ADD ebuilds/naoqi_libqi $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi
 RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/naoqi_libqi-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
 
-RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqicore 
-ADD ebuilds/naoqi_libqicore $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqicore
-
-### TODO: debug emerge of libqicore!!!
-#RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqicore/naoqi_libqicore-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqicore
 
 ENTRYPOINT ["/bin/bash"]
