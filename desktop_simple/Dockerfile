@@ -442,7 +442,7 @@ $PREFIXED emerge ros-noetic/gmapping && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/amcl && rm /tmp/gentoo/usr/bin/tmp && \
 $PREFIXED emerge ros-noetic/move_base && rm /tmp/gentoo/usr/bin/tmp 
 
-
+# New ebuild for Naoqi Libqi (required for naoqi_driver and other naoqi ROS dependencies)
 RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqi 
 ADD ebuilds/naoqi_libqi $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi
 RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/naoqi_libqi-1.12.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
