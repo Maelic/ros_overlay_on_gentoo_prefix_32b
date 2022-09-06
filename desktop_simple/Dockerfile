@@ -454,4 +454,8 @@ RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" emerge =ros-
 =ros-noetic/mbf_utility-0.4.0-r1 \
 =ros-noetic/mbf_costmap_core-0.4.0-r1
 
+RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs 
+ADD ebuilds/naoqi_bridge_msgs /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs
+RUN $PREFIXED ebuild /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs/naoqi_bridge_msgs-0.0.8.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_bridge_msgs
+
 ENTRYPOINT ["/bin/bash"]
