@@ -8,8 +8,7 @@ inherit ros-cmake
 
 DESCRIPTION="Aldebaran\'s libqi: a core library for NAOqiOS development"
 HOMEPAGE="http://doc.aldebaran.com/libqi"
-SRC_URI="https://github.com/ros-naoqi/libqi/archive/v1.12.0-noetic/v1.12.0-noetic.tar.gz -> naoqi_libqi-1.12.0.tar.gz"
-S="${WORKDIR}/libqi-1.12.0-noetic/"
+SRC_URI="https://github.com/ros-naoqi/libqi/archive/v1.12.0-noetic/v1.12.0-noetic.tar.gz -> naoqi_libqi_1_12_0.tar.gz"
 
 LICENSE="BSD"
 

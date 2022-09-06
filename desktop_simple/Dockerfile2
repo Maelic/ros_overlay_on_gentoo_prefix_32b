@@ -1,0 +1,32 @@
+# Pull ros-noetic/ros_base already emerged
+FROM desktop_simple:latest
+
+RUN echo "COLLISION_IGNORE=\"/usr\"" >> $EPREFIX/etc/portage/make.conf && echo "FEATURES=\"\${FEATURES} -collision-protect\"" >> $EPREFIX/etc/portage/make.conf
+
+## TODO: debug all of that
+# Start building custom packages maintained by SoftBank Robotics
+# RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqi 
+# ADD ebuilds/naoqi_libqi $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi
+# #ADD patches/libqi/libqi-release.patch /tmp/gentoo/etc/portage/patches/ros-noetic/naoqi_libqi/libqi-release.patch
+# RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/naoqi_libqi/naoqi_libqi-2.5.0-r3.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqi
+
+# RUN mkdir -p /tmp/gentoo/etc/portage/patches/ros-noetic/naoqi_libqicore
+# COPY patches/libqicore/libqicore-release.patch /tmp/gentoo/etc/portage/patches/ros-noetic/naoqi_libqicore/libqicore-release.patch
+
+#RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqicore 
+#ADD ebuilds/naoqi_libqicore /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqicore
+#RUN $PREFIXED ebuild /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_libqicore/naoqi_libqicore-2.9.0-r5.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_libqicore
+
+
+#install libqi, libqicore and naoqi_driver
+# Custom build of Naoqi lib for noetic
+
+RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs 
+ADD ebuilds/naoqi_bridge_msgs /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs
+RUN $PREFIXED ebuild /tmp/gentoo/usr/local/portage/ros-noetic/naoqi_bridge_msgs/naoqi_bridge_msgs-0.0.8.ebuild manifest && $PREFIXED emerge ros-noetic/naoqi_bridge_msgs
+
+
+
+#ENTRYPOINT ["/home/nao/gentoo/startprefix"]
+
+ENTRYPOINT ["/bin/bash"]
