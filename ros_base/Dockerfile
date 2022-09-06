@@ -33,9 +33,13 @@ RUN cat /proc/cpuinfo; cat /proc/meminfo; df -h
 
 # Note that we always use the same one
 # This command will visit the latest release page and will look for the url of the artifact to download and download it
-RUN aria2c -x 10 http://github.com`curl -s -L https://github.com/awesomebytes/gentoo_prefix_ci_32b/releases/latest | grep "download/release" | cut -d '"' -f2`
+# RUN aria2c -x 10 http://github.com`curl -s -L https://github.com/awesomebytes/gentoo_prefix_ci_32b/releases/latest | grep "download/release" | cut -d '"' -f2`
+COPY ./gentoo_on_tmp-x86.tar.lzma /tmp/gentoo_on_tmp-x86.tar.lzma
 
-RUN tar xvf gentoo_on_tmp-*.tar.*; rm gentoo_on_tmp-*.tar.*
+RUN tar xvf /tmp/gentoo_on_tmp-x86.tar.lzma 
+USER root
+RUN rm /tmp/gentoo_on_tmp-x86.tar.lzma
+USER user
 
 # Make sure it works
 RUN bash gentoo/executeonprefix emerge --version
@@ -94,13 +98,20 @@ RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask
 
 # Sync everything
 RUN $PREFIXED emaint sync -a
-
+RUN $PREFIXED eselect python list
 RUN echo ">=dev-python/jaraco-text-3.7.0-r1" >> $EPREFIX/etc/portage/package.unmask
-RUN $PREFIXED emerge =dev-python/setuptools-60.5.0
+RUN echo ">=dev-lang/python-3.9.13" >> $EPREFIX/etc/portage/package.mask
+
+RUN $PREFIXED emerge --sync && $PREFIXED emerge -qv python 
+RUN $PREFIXED USE='-rsync-verify' emerge -qvO portage && $PREFIXED emerge -qv portage
+
+RUN $PREFIXED PYTHON_TARGETS="python3_8" emerge --pretend -v1 sys-apps/portage
+
 RUN $PREFIXED emerge -1 portage
 
-RUN $PREFIXED emerge =dev-libs/libical-3.0.12 && \ 
-$PREFIXED emerge python:3.8
+RUN $PREFIXED emerge python:3.8
+
+RUN $PREFIXED emerge =dev-python/setuptools-63.2.0
 
 RUN echo ">=net-wireless/bluez-5.63-r1" >> $EPREFIX/etc/portage/package.unmask
 
@@ -122,6 +133,8 @@ RUN echo "=dev-python/rospkg-1.3.0 **\n\
 =dev-python/rosdistro-0.8.3 **\n\
 =dev-util/rosdep-9999 **" >> $EPREFIX/etc/portage/package.accept_keywords
 
+RUN echo "=dev-python/rospkg-1.4.0 **">> $EPREFIX/etc/portage/package.accept_keywords
+
 RUN $PREFIXED emerge dev-util/rosdep 
 RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask && \
 echo ">=dev-python/jaraco-text-3.7.0-r1"  >> $EPREFIX/etc/portage/package.unmask && \
@@ -129,7 +142,7 @@ echo "sys-libs/libcap -pam" >> $EPREFIX/etc/portage/package.use
 
 RUN $PREFIXED emerge sys-devel/llvm
 
-RUN echo ">=dev-libs/boost-1.77.0" >> $EPREFIX/etc/portage/package.mask && \
+RUN echo ">=dev-libs/boost-1.72.0" >> $EPREFIX/etc/portage/package.mask && \
 echo "=dev-libs/boost-1.71.0-r666 threads python" >> $EPREFIX/etc/portage/package.use && \
 echo "=dev-libs/boost-1.71.0-r666 **\n\
 =dev-libs/console_bridge-9999 **">> $EPREFIX/etc/portage/package.accept_keywords
@@ -137,8 +150,6 @@ echo "=dev-libs/boost-1.71.0-r666 **\n\
 # Boost install from source - OLD
 #RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.gz && tar -xzf boost_1_71_0.tar.gz && rm boost_1_71_0.tar.gz
 #RUN cd boost_1_71_0 && ./bootstrap.sh --prefix=/tmp/gentoo/usr/include/boost && ./b2 install --prefix=/tmp/gentoo/usr/include/boost --with=all
-
-RUN echo ">=dev-libs/boost-1.72.0" >> $EPREFIX/etc/portage/package.mask
 
 RUN echo "# required by ros-noetic/nodelet-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/nodelet_topic_tools-1.10.2-r1::ros-overlay\n\
@@ -157,15 +168,22 @@ RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-libs/boost && mkdir -p $EPREFIX/u
 ADD ebuilds/boost $EPREFIX/usr/local/portage/dev-libs/boost
 RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.71.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.71.0
 
-
-
 # Patch issue https://github.com/ros/ros-overlay/issues/607
 RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
 ADD catkin_patchs $EPREFIX/etc/portage/patches/ros-noetic/catkin
-RUN $PREFIXED emerge ros-noetic/catkin
 
-RUN $PREFIXED COLLISION_IGNORE="/usr" linux32 emerge ros-noetic/ros_base || true
+ADD eclass/cmake-utils.eclass $EPREFIX/usr/local/portage/eclass
+RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/catkin
+ADD catkin/catkin $EPREFIX/usr/local/portage/ros-noetic/catkin
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/catkin/catkin-0.8.10-r1.ebuild manifest && $PREFIXED emerge ros-noetic/catkin
 
-RUN COLLISION_IGNORE="/tmp/gentoo/usr" FEATURES="-collision-detect -protect-owned" $PREFIXED emerge  ros-noetic/ros_base
+RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" USE="cpu_flags_x86_sse2" linux32 emerge ros-noetic/ros_base || true
+RUN $PREFIXED emerge x11-libs/pixman
+
+RUN rm -rf $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo && mkdir -p $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo
+ADD ebuilds/libjpeg-turbo/libjpeg-turbo-2.1.3.ebuild $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo/libjpeg-turbo-2.1.3.ebuild
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo/libjpeg-turbo-2.1.3.ebuild manifest && $PREFIXED emerge =media-libs/libjpeg-turbo-2.1.3
+
+RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" USE="cpu_flags_x86_sse2" emerge  ros-noetic/ros_base
 
 ENTRYPOINT ["/bin/bash"]

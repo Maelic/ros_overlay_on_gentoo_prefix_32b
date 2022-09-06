@@ -1,0 +1,36 @@
+diff --git a/qi/application.hpp b/qi/application.hpp
+index 194a919..84e47cf 100644
+--- a/qi/application.hpp
++++ b/qi/application.hpp
+@@ -13,6 +13,7 @@
+ # include <vector>
+ # include <string>
+ # include <qi/api.hpp>
++# include <iostream>
+ 
+ namespace qi {
+ 
+diff --git a/qi/detail/executioncontext.hpp b/qi/detail/executioncontext.hpp
+index 79e8047..933a2cd 100644
+--- a/qi/detail/executioncontext.hpp
++++ b/qi/detail/executioncontext.hpp
+@@ -12,6 +12,7 @@
+ #include <qi/api.hpp>
+ #include <qi/clock.hpp>
+ #include <ka/typetraits.hpp>
++#include <boost/type_traits.hpp>
+ 
+ namespace qi
+ {
+diff --git a/qi/type/detail/anyfunctionfactory.hxx b/qi/type/detail/anyfunctionfactory.hxx
+index 32ebb09..371580b 100644
+--- a/qi/type/detail/anyfunctionfactory.hxx
++++ b/qi/type/detail/anyfunctionfactory.hxx
+@@ -33,6 +33,7 @@
+ #include <boost/thread/mutex.hpp>
+ #include <qi/atomic.hpp>
+ #include <qi/anyvalue.hpp>
++#include <boost/type_traits/is_fundamental.hpp>
+ #include <ka/macro.hpp>
+ #include <ka/typetraits.hpp>
+ 

@@ -1,6 +1,83 @@
 # Pull ros-noetic/ros_base already emerged
-FROM noetic-desktop-2
+FROM ros_base:latest
 
+RUN echo "ACCEPT_LICENSE=\"*\"" >> $EPREFIX/etc/portage/make.conf 
+
+RUN echo "# required by dev-qt/qtgui-5.15.5-r2::gentoo[-gles2-only]\n\
+# required by dev-qt/qtwidgets-5.15.5-r1::gentoo\n\
+# required by dev-qt/qtwidgets (argument)\n\
+>=media-libs/libglvnd-1.4.0 X\n\
+# required by dev-qt/qtgui-5.15.5-r2::gentoo[X]\n\
+# required by dev-qt/qtwidgets-5.15.5-r1::gentoo\n\
+# required by dev-qt/qtwidgets (argument)\n\
+>=x11-libs/libxkbcommon-1.4.1 X" >> /tmp/gentoo/etc/portage/package.use 
+
+RUN $PREFIXED emerge dev-qt/qtcore dev-qt/qttest dev-qt/qtconcurrent dev-qt/qtwidgets 
+RUN $PREFIXED USE="pcre16*" emerge dev-libs/libpcre2
+
+# Hard fix for PyQt5 not compiling with threads IUSE
+RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-python/PyQt5
+ADD ebuilds/PyQt5 $EPREFIX/usr/local/portage/dev-python/PyQt5
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-python/PyQt5/PyQt5-5.15.6.ebuild manifest
+RUN echo "# required by =dev-python/PyQt5-5.15.6[gui,widgets] (argument)\n\
+>=dev-python/PyQt5-5.15.6 gui widgets" >> $EPREFIX/etc/portage/package.use
+
+RUN $PREFIXED emerge  =dev-python/PyQt5-5.15.6[gui,widgets]
+
+RUN echo ">=dev-python/PyQt5-5.15.6 gui widgets webkit network printsupport opengl" >> $EPREFIX/etc/portage/package.use
+RUN ln -s /tmp/gentoo/usr/lib/qt5/bin/qmake qmake
+RUN qt_install_libs_path=/tmp/gentoo/usr/lib; sed -i 's@$$\[QT_INSTALL_LIBS\]@'$qt_install_libs_path'@' $EPREFIX/usr/lib/libQt5Gui.prl
+RUN cd /tmp/gentoo/usr/lib/cmake/Qt5Gui; find ./ -type f -exec sed -i -e 's@/home/user@/tmp@g' {} \;
+
+# Without this perl not compiling, don't ask me why
+RUN $PREFIXED USE="cpu_flags_x86_sse2" emerge virtual/rust && \
+$PREFIXED perl-cleaner --backtrack=100 --all 
+RUN $PREFIXED emaint sync -a
+
+RUN $PREFIXED emerge -C virtual/perl* && \
+$PREFIXED emerge -C perl-core/* && \
+$PREFIXED emerge -C perl && \
+$PREFIXED emerge dev-lang/perl
+
+RUN $PREFIXED perl-cleaner --modules && \
+$PREFIXED perl-cleaner --allmodules  && \ 
+$PREFIXED perl-cleaner --libperl && \
+$PREFIXED perl-cleaner --ph-clean && \
+$PREFIXED perl-cleaner --ph-clean 
+
+# Hard fix for dwz, because the required version isn't in the official gentoo repotitory anymore
+RUN echo ">=sys-devel/dwz-0.14 **" >> $EPREFIX/etc/portage/package.accept_keywords
+RUN mkdir -p /tmp/gentoo/var/cache/distfiles/ && cd /tmp/gentoo/var/cache/distfiles/ && wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1iC3nkmNAnWWNeFBZ5UbuX3TnWMmOOiht' -O dwz-0.14.tar.xz
+RUN mkdir -p $EPREFIX/usr/local/portage/sys-devel/dwz
+ADD ebuilds/dwz $EPREFIX/usr/local/portage/sys-devel/dwz
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/sys-devel/dwz/dwz-0.14.ebuild manifest
+RUN $PREFIXED emerge sys-devel/dwz
+
+RUN $PREFIXED emerge dev-lang/python-exec
+RUN echo ">=dev-libs/urdfdom_headers-1.0.5 **\n\
+>=dev-python/python_orocos_kdl-1.5.0 **\n\
+>=dev-libs/urdfdom-1.0.4-r1 **">> $EPREFIX/etc/portage/package.accept_keywords
+
+
+RUN $PREFIXED emerge media-libs/opencv
+
+# Hard fix for cv_bridge to find boost 1.71
+RUN cd $EPREFIX/usr/lib && ln -s libboost_python-3.8.so libboost_python.so
+RUN rm -rf $EPREFIX/usr/local/portage/ros-noetic/cv_bridge && mkdir $EPREFIX/usr/local/portage/ros-noetic/cv_bridge
+ADD ebuilds/cv_bridge $EPREFIX/usr/local/portage/ros-noetic/cv_bridge
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/cv_bridge/cv_bridge-1.15.0-r1.ebuild manifest
+
+
+RUN $PREFIXED emerge ros-noetic/desktop
+
+# qtwebkit has been removed from the gentoo official overlay, need to add it manualy
+RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-qt/qtwebkit
+ADD ebuilds/qtwebkit $EPREFIX/usr/local/portage/dev-qt/qtwebkit
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-qt/qtwebkit/qtwebkit-5.212.0_pre20200309-r2.ebuild manifest && \
+$PREFIXED emerge dev-qt/qtwebkit && \
+$PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/robot-1.5.0-r1  && rm /tmp/gentoo/usr/bin/tmp && \
+$PREFIXED emerge =ros-noetic/diagnostics-1.10.4-r1 && rm /tmp/gentoo/usr/bin/tmp 
 
 RUN echo ">=dev-libs/libpcre2-10.32 pcre16" >> /tmp/gentoo/etc/portage/package.use 
 
