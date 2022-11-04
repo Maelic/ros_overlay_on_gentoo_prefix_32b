@@ -98,7 +98,6 @@ RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask
 
 # Sync everything
 RUN $PREFIXED emaint sync -a
-RUN $PREFIXED eselect python list
 RUN echo ">=dev-python/jaraco-text-3.7.0-r1" >> $EPREFIX/etc/portage/package.unmask
 RUN echo ">=dev-lang/python-3.9.13" >> $EPREFIX/etc/portage/package.mask
 
@@ -111,7 +110,7 @@ RUN $PREFIXED emerge -1 portage
 
 RUN $PREFIXED emerge python:3.8
 
-RUN $PREFIXED emerge =dev-python/setuptools-63.2.0
+RUN $PREFIXED emerge =dev-python/setuptools-65.3.0
 
 RUN echo ">=net-wireless/bluez-5.63-r1" >> $EPREFIX/etc/portage/package.unmask
 
@@ -151,33 +150,45 @@ echo "=dev-libs/boost-1.71.0-r666 **\n\
 #RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.gz && tar -xzf boost_1_71_0.tar.gz && rm boost_1_71_0.tar.gz
 #RUN cd boost_1_71_0 && ./bootstrap.sh --prefix=/tmp/gentoo/usr/include/boost && ./b2 install --prefix=/tmp/gentoo/usr/include/boost --with=all
 
-RUN echo "# required by ros-noetic/nodelet-1.10.2-r1::ros-overlay\n\
-# required by ros-noetic/nodelet_topic_tools-1.10.2-r1::ros-overlay\n\
-# required by ros-noetic/nodelet_core-1.10.2-r1::ros-overlay\n\
-# required by ros-noetic/ros_base-1.5.0-r1::ros-overlay\n\
-# required by ros-noetic/ros_base (argument)\n\
->=dev-libs/boost-1.71.0 python threads" >> $EPREFIX/etc/portage/package.use
+RUN echo ">=dev-libs/boost-1.71.0 python threads" >> $EPREFIX/etc/portage/package.use
 
-RUN echo ">=dev-libs/boost-1.71.0 python" >> $EPREFIX/etc/portage/package.use
 
-RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-util/boost-build
-ADD ebuilds/boost-build $EPREFIX/usr/local/portage/dev-util/boost-build
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-util/boost-build/boost-build-1.71.0.ebuild manifest && $PREFIXED emerge =dev-util/boost-build-1.71.0
+# fix cmake-utils.eclass could not be found by inherit()
+ADD eclass/cmake-utils.eclass $EPREFIX/usr/local/portage/eclass
 
-RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-libs/boost && mkdir -p $EPREFIX/usr/local/portage/dev-libs/boost/files
-ADD ebuilds/boost $EPREFIX/usr/local/portage/dev-libs/boost
+
+# Copy lib from ros-overlay
+# ADD ros-overlay/dev-libs/boost $EPREFIX/usr/local/portage/dev-libs/boost
+ADD --chown=user:user dev-libs/boost-build $EPREFIX/usr/local/portage/dev-libs/boost-build
+ADD --chown=user:user dev-libs/boost $EPREFIX/usr/local/portage/dev-libs/boost
+
+# Create manifest for the copied ebuild
+# RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.79.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.79.0
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost-build/boost-build-1.71.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-build-1.71.0
 RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.71.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.71.0
 
+
+
+# RUN echo "# required by ros-galatic/ros_base-0.9.2-r1::ros-overlay\n
+# >=dev-libs/boost-1.71.0 python threads" >> $EPREFIX/etc/portage/package.use
+
+RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" USE="cpu_flags_x86_sse2" emerge  ros-galactic/ros_base
+# RUN echo ">=dev-libs/boost-1.71.0 python" >> $EPREFIX/etc/portage/package.use
+
+# RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-util/boost-build
+# ADD ebuilds/boost-build $EPREFIX/usr/local/portage/dev-util/boost-build
+# RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-util/boost-build/boost-build-1.71.0.ebuild manifest && $PREFIXED emerge =dev-util/boost-build-1.71.0
+
+
 # Patch issue https://github.com/ros/ros-overlay/issues/607
-RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
-ADD catkin_patchs $EPREFIX/etc/portage/patches/ros-noetic/catkin
+# RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
+# ADD catkin_patchs $EPREFIX/etc/portage/patches/ros-noetic/catkin
 
-ADD eclass/cmake-utils.eclass $EPREFIX/usr/local/portage/eclass
-RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-noetic/catkin
-ADD catkin/catkin $EPREFIX/usr/local/portage/ros-noetic/catkin
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/catkin/catkin-0.8.10-r1.ebuild manifest && $PREFIXED emerge ros-noetic/catkin
+# RUN mkdir -p /tmp/gentoo/usr/local/portage/ros-galatic/catkin
+# ADD catkin/catkin $EPREFIX/usr/local/portage/ros-noetic/catkin
+# RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/ros-noetic/catkin/catkin-0.8.10-r1.ebuild manifest && $PREFIXED emerge ros-noetic/catkin
 
-RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" USE="cpu_flags_x86_sse2" linux32 emerge ros-noetic/ros_base || true
+# RUN $PREFIXED COLLISION_IGNORE="/usr" FEATURES="-collision-protect" USE="cpu_flags_x86_sse2" linux32 emerge ros-noetic/ros_base || true
 RUN $PREFIXED emerge x11-libs/pixman
 
 RUN rm -rf $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo && mkdir -p $EPREFIX/usr/local/portage/media-libs/libjpeg-turbo
