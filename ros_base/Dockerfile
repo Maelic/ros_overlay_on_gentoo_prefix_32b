@@ -95,21 +95,25 @@ sync-uri = https://github.com/gentoo-mirror/gentoo \n\
 auto-sync = yes" > $EPREFIX/etc/portage/repos.conf/gentoo.conf
 
 RUN echo ">=sys-devel/binutils-2.36.1-r1" >> $EPREFIX/etc/portage/package.unmask
+RUN echo "*/* PYTHON_TARGETS: python3_9\n\
+*/* PYTHON_SINGLE_TARGET: python3_9" >> $EPREFIX/etc/portage/package.use
 
 # Sync everything
 RUN $PREFIXED emaint sync -a
 RUN $PREFIXED eselect python list
 RUN echo ">=dev-python/jaraco-text-3.7.0-r1" >> $EPREFIX/etc/portage/package.unmask
-RUN echo ">=dev-lang/python-3.9.13" >> $EPREFIX/etc/portage/package.mask
+#RUN echo ">=dev-lang/python-3.9.13" >> $EPREFIX/etc/portage/package.mask
 
-RUN $PREFIXED emerge --sync && $PREFIXED emerge -qv python 
-RUN $PREFIXED USE='-rsync-verify' emerge -qvO portage && $PREFIXED emerge -qv portage
+RUN $PREFIXED emerge --sync 
+# && $PREFIXED emerge -qv python 
+RUN $PREFIXED emerge gentoo-sources
 
-RUN $PREFIXED PYTHON_TARGETS="python3_8" emerge --pretend -v1 sys-apps/portage
+RUN $PREFIXED PYTHON_TARGETS="python3_9" USE='-rsync-verify' emerge -qvO portage && $PREFIXED emerge -qv portage
+RUN $PREFIXED PYTHON_TARGETS="python3_9" emerge --pretend -v1 sys-apps/portage
 
 RUN $PREFIXED emerge -1 portage
 
-RUN $PREFIXED emerge python:3.8
+RUN $PREFIXED emerge python:3.9
 
 RUN $PREFIXED emerge =dev-python/setuptools-63.2.0
 
@@ -125,7 +129,7 @@ RUN echo "net-wireless/bluez -udev" >> $EPREFIX/etc/portage/package.use &&\
 RUN EXTRA_ECONF="--enable-optimizations --with-lto" $PREFIXED emerge python:3.8[sqlite,bluetooth,readline]
 
 # Could be good to have pip running with python3.8
-RUN wget https://bootstrap.pypa.io/get-pip.py && $PREFIXED python3.8 get-pip.py && rm get-pip.py 
+RUN wget https://bootstrap.pypa.io/get-pip.py && $PREFIXED python3.9 get-pip.py && rm get-pip.py 
 
 RUN $PREFIXED emerge dev-util/cmake
 
@@ -142,9 +146,9 @@ echo "sys-libs/libcap -pam" >> $EPREFIX/etc/portage/package.use
 
 RUN $PREFIXED emerge sys-devel/llvm
 
-RUN echo ">=dev-libs/boost-1.72.0" >> $EPREFIX/etc/portage/package.mask && \
-echo "=dev-libs/boost-1.71.0-r666 threads python" >> $EPREFIX/etc/portage/package.use && \
-echo "=dev-libs/boost-1.71.0-r666 **\n\
+RUN echo ">=dev-libs/boost-1.78.0" >> $EPREFIX/etc/portage/package.mask && \
+echo "=dev-libs/boost-1.77.0-r666 threads python" >> $EPREFIX/etc/portage/package.use && \
+echo "=dev-libs/boost-1.77.0-r666 **\n\
 =dev-libs/console_bridge-9999 **">> $EPREFIX/etc/portage/package.accept_keywords
 
 # Boost install from source - OLD
@@ -156,17 +160,17 @@ RUN echo "# required by ros-noetic/nodelet-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/nodelet_core-1.10.2-r1::ros-overlay\n\
 # required by ros-noetic/ros_base-1.5.0-r1::ros-overlay\n\
 # required by ros-noetic/ros_base (argument)\n\
->=dev-libs/boost-1.71.0 python threads" >> $EPREFIX/etc/portage/package.use
+>=dev-libs/boost-1.77.0 python threads" >> $EPREFIX/etc/portage/package.use
 
-RUN echo ">=dev-libs/boost-1.71.0 python" >> $EPREFIX/etc/portage/package.use
+RUN echo ">=dev-libs/boost-1.77.0 python" >> $EPREFIX/etc/portage/package.use
 
 RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-util/boost-build
-ADD ebuilds/boost-build $EPREFIX/usr/local/portage/dev-util/boost-build
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-util/boost-build/boost-build-1.71.0.ebuild manifest && $PREFIXED emerge =dev-util/boost-build-1.71.0
+ADD ebuilds/boost_build_overlay $EPREFIX/usr/local/portage/dev-util/boost-build
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-util/boost-build/boost-build-1.77.0.ebuild manifest && $PREFIXED emerge =dev-util/boost-build-1.77.0
 
 RUN mkdir -p /tmp/gentoo/usr/local/portage/dev-libs/boost && mkdir -p $EPREFIX/usr/local/portage/dev-libs/boost/files
-ADD ebuilds/boost $EPREFIX/usr/local/portage/dev-libs/boost
-RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.71.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.71.0
+ADD ebuilds/boost_overlay $EPREFIX/usr/local/portage/dev-libs/boost
+RUN $PREFIXED ebuild $EPREFIX/usr/local/portage/dev-libs/boost/boost-1.77.0.ebuild manifest && $PREFIXED emerge =dev-libs/boost-1.77.0
 
 # Patch issue https://github.com/ros/ros-overlay/issues/607
 RUN mkdir -p $EPREFIX/etc/portage/patches/ros-noetic/catkin
